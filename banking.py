@@ -13,8 +13,22 @@ class Account:
         self.logged_in: bool = False
         self.services = [
             {'Balance': 'show_balance'},
+            {'Add Income': 'deposit'},
+            {'Do transfer': 'transfer'},
+            {'Close account': 'close_account'},
             {'Log out': 'logout_account'}
         ]
+
+    @staticmethod
+    def is_valid_card(number) -> bool:
+        nums = [int(x) for x in str(number)]
+        for i in range(len(nums)):
+            if (i + 1) % 2:
+                nums[i] *= 2
+        for i in range(len(nums)):
+            if nums[i] > 9:
+                nums[i] -= 9
+        return  sum(nums) % 10 == 0
 
     @staticmethod
     def generate_number() -> str:
@@ -67,6 +81,76 @@ class Account:
 
     def show_balance(self):
         print(f"\nBalance: {self.balance}\n")
+
+    def deposit(self):
+        print("Enter Income:")
+        while True:
+            try:
+                income = int(input())
+                break
+            except NameError:
+                print('Only Numbers Accepted\n')
+        self.balance += income
+        cur = self.con.cursor()
+        sql = f"UPDATE card " \
+              f"SET balance = '{self.balance}' " \
+              f"WHERE number = '{self.card_number}' " \
+              f"AND pin = '{self.card_pin}';"
+        cur.execute(sql)
+        self.con.commit()
+        print("Income was added!\n")
+
+    def transfer(self):
+        print("\nTransfer")
+        print("Enter card number:")
+        try:
+            number = int(input())
+        except:
+            print('Probably you made a mistake in the card number. '
+                  'Please try again!\n')
+            return
+        if self.is_valid_card(number):
+            cur = self.con.cursor()
+            sql = f"SELECT balance FROM card " \
+                  f"WHERE number = '{number}';"
+            cur.execute(sql)
+            result = cur.fetchall()
+            if result:
+                balance = result[0][0]
+                print('Enter how much money you want to transfer:')
+                try:
+                    amount = int(input())
+                    if amount <= self.balance:
+                        balance += amount
+                        self.balance -= amount
+                        cur = self.con.cursor()
+                        sql = f"UPDATE card " \
+                              f"SET balance = {balance} " \
+                              f"WHERE number = '{number}';"
+                        cur.execute(sql)
+                        sql = f"UPDATE card " \
+                              f"SET balance = {self.balance} " \
+                              f"WHERE number = '{self.card_number}';"
+                        cur.execute(sql)
+                        self.con.commit()
+                        print('Success!')
+                    else:
+                        print('Not enough money!\n')
+                except NameError:
+                    print('Only Numbers Accepted\n')
+            else:
+                print('Such a card does not exist.\n')
+        else:
+            print('Probably you made a mistake in the card number. '
+                  'Please try again!\n')
+
+    def close_account(self):
+        cur = self.con.cursor()
+        sql = f"DELETE FROM card  " \
+              f"WHERE number = '{self.card_number}';"
+        cur.execute(sql)
+        self.con.commit()
+        print('\nThe account has been closed!\n')
 
     def ask_user(self):
         while self.logged_in:
