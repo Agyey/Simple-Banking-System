@@ -16,13 +16,26 @@ class Account:
     @staticmethod
     def generate_number() -> str:
         IIN = "400000"
-        CAN = str(hash(datetime.now()) % 10**9).rjust(9,'0')
-        checksum = str(randint(0, 9))
-        return IIN + CAN + checksum
+        CAN = str((hash(datetime.now()) + hash(randint(10**9, 10**10-1))) % 10**9).rjust(9, '0')
+        card_number = IIN + CAN
+        checksum = Account.generate_checksum(card_number)
+        card_number += checksum
+        return card_number
 
     @staticmethod
     def generate_pin() -> str:
-        return str(randint(0, 10*4-1)).rjust(4,'0')
+        return str(randint(0, 10*4-1)).rjust(4, '0')
+
+    @staticmethod
+    def generate_checksum(number):
+        nums = [int(x) for x in number]
+        for i in range(len(nums)):
+            if (i+1) % 2:
+                nums[i] *= 2
+        for i in range(len(nums)):
+            if nums[i] > 9:
+                nums[i] -= 9
+        return str(10 - sum(nums) % 10)
 
     def create_account(self):
         print("\nYour card has been created")
